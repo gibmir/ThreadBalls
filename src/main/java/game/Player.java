@@ -1,7 +1,6 @@
 package game;
 
 import java.util.Random;
-import java.util.Set;
 
 /**
  * Class-thread represent game player.<br>
@@ -16,11 +15,11 @@ public class Player implements Runnable {
     /**
      * the ball played by a player
      */
-    private volatile Ball playerBall;
+    private Ball playerBall;
     /**
      * the field on which the player plays
      */
-    private volatile GameField gameField;
+    private GameField gameField;
     /**
      * name of the player
      */
@@ -36,58 +35,59 @@ public class Player implements Runnable {
     /**
      * Count of maximum nearest neighbors of the ball
      *
-     * @see Player#isSurrounded(Ball, Set)
+     * @see Player#isSurrounded()
      */
     private static final int MAXIMUM_NEAREST_NEIGHBOR_COUNT = 4;
-
-    public Player(Ball playerBall, GameField gameField, String playerName) {
-        this.playerBall = playerBall;
-        this.gameField = gameField;
-        this.playerName = playerName;
-        this.playerSpeed = playerRandom.nextInt(5000-1000);
-        new Thread(this).start();
-    }
 
     /**
      * Creates new player and starts its thread
      *
-     * @param playerBall  the ball played by a player
-     * @param gameField   the field on which the player plays
-     * @param playerName  name of the player
-     * @param playerSpeed reaction speed of player
+     * @param playerBall the ball played by a player
+     * @param gameField  the field on which the player plays
+     * @param playerName name of the player
      */
-    public Player(Ball playerBall, GameField gameField, String playerName, long playerSpeed) {
+    public Player(Ball playerBall, GameField gameField, String playerName) {
         this.playerBall = playerBall;
         this.gameField = gameField;
         this.playerName = playerName;
-        this.playerSpeed = playerSpeed;
+        this.playerSpeed = /*1000*/ playerRandom.nextInt(5000 - 1000);
         new Thread(this).start();
     }
 
     /**
      * Checks whether the player's ball is surrounded on 4 sides
      *
-     * @param playerBall the ball played by a player
-     * @param balls      set of the balls
      * @return true if the player's ball is surrounded on 4 sides
      * @see GameField#balls
      */
-    private synchronized boolean isSurrounded(Ball playerBall, Set<Ball> balls) {
+    private boolean isSurrounded() {
         int nearestNeighbor = 0;
-        balls.remove(playerBall);
-        for (Ball ball : balls) {
+        int x = playerBall.getPositionX();
+        int y = playerBall.getPositionY();
+
+        for (Ball ball : gameField.getBalls()) {
+
             //check neighbors by abscissa
-            if (ball.getPositionX() == playerBall.getPositionX()) {
-                if ((ball.getPositionY() == playerBall.getPositionY() + 1) || (ball.getPositionY() == playerBall.getPositionY() - 1)) {
+            if (ball.getPositionX() == x) {
+                if ((ball.getPositionY() == y + 1) || (ball.getPositionY() == y - 1)) {
                     nearestNeighbor++;
                 }
             }
             //check neighbors by ordinate
-            if (ball.getPositionY() == playerBall.getPositionY()) {
-                if ((ball.getPositionX() == playerBall.getPositionX() + 1) || (ball.getPositionX() == playerBall.getPositionX() - 1)) {
+            if (ball.getPositionY() == y) {
+                if ((ball.getPositionX() == x + 1) || (ball.getPositionX() == x - 1)) {
                     nearestNeighbor++;
                 }
             }
+
+        }
+        //abscissa border check
+        if ((x == 0) || (x == gameField.getSizeX())) {
+            nearestNeighbor++;
+        }
+        //ordinate border check
+        if ((y == 0) || (y == gameField.getSizeY())) {
+            nearestNeighbor++;
         }
         //this condition means that ball is surrounded by other balls on 4 sides
         if (nearestNeighbor == MAXIMUM_NEAREST_NEIGHBOR_COUNT) {
@@ -105,16 +105,15 @@ public class Player implements Runnable {
      * @return false if player can move the ball in the specified direction
      */
     private boolean isMove(Ball step) {
-        Set<Ball> balls = gameField.getBalls();
-        balls.remove(playerBall);
+
         int neighborsCount = 0;
         //checks if specified direction does not exceed the field limits
-        if ((step.getPositionX() > gameField.getSizeX()) || (step.getPositionX() < 0) || (step.getPositionY() > gameField.getSizeY()) || (step.getPositionY() < 0)) {
+        if ((step.getPositionX() >= gameField.getSizeX()) || (step.getPositionX() < 0) || (step.getPositionY() >= gameField.getSizeY()) || (step.getPositionY() < 0)) {
             return true;
         }
-        for (Ball ball : balls) {
-            //checks if specified direction is incorrect
-            if ((Math.abs(ball.getPositionX() - step.getPositionX()) <= 1) && (Math.abs(ball.getPositionY() - step.getPositionY()) <= 1)) {
+        for (Ball ball : gameField.getBalls()) {
+            //checks if specified direction is incorrect(if player stepped on the ball)
+            if ((Math.abs(ball.getPositionX() - step.getPositionX()) == 0) && (Math.abs(ball.getPositionY() - step.getPositionY()) == 0)) {
                 neighborsCount++;
             }
         }
@@ -128,31 +127,65 @@ public class Player implements Runnable {
     /**
      * Determines the movement of the ball by the player
      *
-     * @see Player#isSurrounded(Ball, Set)
+     * @see Player#isSurrounded()
      * @see Player#isMove(Ball)
      */
     private void move() {
-        Ball step = new Ball(playerBall.getPositionX(), playerBall.getPositionY());
-        do {
-            //if the player's ball is surrounded on 4 sides - can't touch him
-            if (isSurrounded(playerBall, gameField.getBalls())) {
-                break;
+        synchronized (gameField) {
+            Ball step = new Ball(playerBall.getPositionX(), playerBall.getPositionY());
+            do {
+                //if the player's ball is surrounded on 4 sides - can't touch him
+                if (isSurrounded()) {
+                    break;
+                }
+                step.setPositionY(playerBall.getPositionY());
+                step.setPositionX(playerBall.getPositionX());
+                if (playerRandom.nextDouble() <= 0.25) {
+                    step.setPositionX(step.getPositionX() + 1);
+                } else if (playerRandom.nextDouble() <= 0.5) {
+                    step.setPositionX(step.getPositionX() - 1);
+                } else if (playerRandom.nextDouble() <= 0.75) {
+                    step.setPositionY(step.getPositionY() + 1);
+                } else if (playerRandom.nextDouble() <= 1) {
+                    step.setPositionY(step.getPositionY() - 1);
+                }
+
+                //move is performed until there is find a direction in which the ball can be moved
+            } while (isMove(step));
+            gameField.getBalls().remove(playerBall);
+            playerBall.setPositionX(step.getPositionX());
+            playerBall.setPositionY(step.getPositionY());
+            gameField.getBalls().add(playerBall);
+            print();
+        }
+    }
+
+    /**
+     * Prints change the game field to the console
+     */
+    private void print() {
+        int sizeX = gameField.getSizeX();
+        int sizeY = gameField.getSizeY();
+        char[][] gameField = new char[sizeX][sizeY];
+        //fill the array with values
+        for (int i = 0; i < sizeX; i++) {
+            for (int j = 0; j < sizeY; j++) {
+                gameField[i][j] = '#';
             }
-            step.setPositionY(playerBall.getPositionY());
-            step.setPositionX(playerBall.getPositionX());
-            if (playerRandom.nextDouble() <= 0.25) {
-                step.setPositionX(step.getPositionX() + 1);
-            } else if (playerRandom.nextDouble() <= 0.5) {
-                step.setPositionX(step.getPositionX() - 1);
-            } else if (playerRandom.nextDouble() <= 0.75) {
-                step.setPositionY(step.getPositionY() + 1);
-            } else if (playerRandom.nextDouble() <= 1) {
-                step.setPositionY(step.getPositionY() - 1);
+        }
+        //place balls
+        for (Ball ball : this.gameField.getBalls()) {
+            gameField[ball.getPositionX()][ball.getPositionY()] = '*';
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        //form output string
+        for (int i = 0; i < gameField.length; i++) {
+            for (int j = 0; j < gameField[i].length; j++) {
+                stringBuilder.append(gameField[i][j]);
             }
-            //move is performed until there is find a direction in which the ball can be moved
-        } while (isMove(step));
-        playerBall.setPositionX(step.getPositionX());
-        playerBall.setPositionY(step.getPositionY());
+            stringBuilder.append("\n");
+        }
+        System.out.println(stringBuilder.toString());
     }
 
     public void run() {
@@ -160,7 +193,6 @@ public class Player implements Runnable {
             try {
                 Thread.sleep(playerSpeed);
                 move();
-                System.out.printf("%s перекатывает свой шар на: \n x:%s y:%s \n", playerName, playerBall.getPositionX(), playerBall.getPositionY());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

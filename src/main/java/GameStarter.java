@@ -1,16 +1,15 @@
 import game.Ball;
 import game.GameField;
 import game.Player;
-
 import java.util.HashSet;
 import java.util.Set;
 
-public class GameStarter {
+public class GameStarter  {
     public static void main(String[] args) {
-        Ball mustaineBall = new Ball(1, 1);
-        Ball friedmanBall = new Ball(3, 3);
-        Ball menzaBall = new Ball(5, 5);
-        Ball ellefsonBall = new Ball(7, 7);
+        Ball mustaineBall = new Ball(0, 1);
+        Ball friedmanBall = new Ball(0, 0);
+        Ball menzaBall = new Ball(1, 1);
+        Ball ellefsonBall = new Ball(1, 0);
         Set<Ball> balls = new HashSet<Ball>();
         balls.add(mustaineBall);
         balls.add(friedmanBall);
