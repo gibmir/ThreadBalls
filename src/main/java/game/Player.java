@@ -99,21 +99,25 @@ public class Player implements Runnable {
     }
 
     /**
-     * Check if player can move the ball in the specified direction
+     * Check if direction of the ball is incorrect
      *
-     * @param step ball with new specified direction
-     * @return false if player can move the ball in the specified direction
+     * @param directedBall ball with new specified direction
+     * @return false if direction is correct
      */
-    private boolean isMove(Ball step) {
+    private boolean isIncorrectDirection(Ball directedBall) {
 
         int neighborsCount = 0;
-        //checks if specified direction does not exceed the field limits
-        if ((step.getPositionX() >= gameField.getSizeX()) || (step.getPositionX() < 0) || (step.getPositionY() >= gameField.getSizeY()) || (step.getPositionY() < 0)) {
+        //checks if direction does not exceed the field limits
+        if ((directedBall.getPositionX() >= gameField.getSizeX())
+                || (directedBall.getPositionX() < 0)
+                || (directedBall.getPositionY() >= gameField.getSizeY())
+                || (directedBall.getPositionY() < 0)) {
             return true;
         }
         for (Ball ball : gameField.getBalls()) {
             //checks if specified direction is incorrect(if player stepped on the ball)
-            if ((Math.abs(ball.getPositionX() - step.getPositionX()) == 0) && (Math.abs(ball.getPositionY() - step.getPositionY()) == 0)) {
+            if ((Math.abs(ball.getPositionX() - directedBall.getPositionX()) == 0)
+                    && (Math.abs(ball.getPositionY() - directedBall.getPositionY()) == 0)) {
                 neighborsCount++;
             }
         }
@@ -128,34 +132,30 @@ public class Player implements Runnable {
      * Determines the movement of the ball by the player
      *
      * @see Player#isSurrounded()
-     * @see Player#isMove(Ball)
+     * @see Player#isIncorrectDirection(Ball)
      */
     private void move() {
         synchronized (gameField) {
             Ball step = new Ball(playerBall.getPositionX(), playerBall.getPositionY());
-            do {
-                //if the player's ball is surrounded on 4 sides - can't touch him
-                if (isSurrounded()) {
-                    break;
-                }
-                step.setPositionY(playerBall.getPositionY());
-                step.setPositionX(playerBall.getPositionX());
-                if (playerRandom.nextDouble() <= 0.25) {
-                    step.setPositionX(step.getPositionX() + 1);
-                } else if (playerRandom.nextDouble() <= 0.5) {
-                    step.setPositionX(step.getPositionX() - 1);
-                } else if (playerRandom.nextDouble() <= 0.75) {
-                    step.setPositionY(step.getPositionY() + 1);
-                } else if (playerRandom.nextDouble() <= 1) {
-                    step.setPositionY(step.getPositionY() - 1);
-                }
-
-                //move is performed until there is find a direction in which the ball can be moved
-            } while (isMove(step));
-            gameField.getBalls().remove(playerBall);
+            //if the player's ball is surrounded on 4 sides - can't touch him
+            if (!isSurrounded()) {
+                do {
+                    step.setPositionY(playerBall.getPositionY());
+                    step.setPositionX(playerBall.getPositionX());
+                    if (playerRandom.nextDouble() <= 0.25) {
+                        step.setPositionX(step.getPositionX() + 1);
+                    } else if (playerRandom.nextDouble() <= 0.5) {
+                        step.setPositionX(step.getPositionX() - 1);
+                    } else if (playerRandom.nextDouble() <= 0.75) {
+                        step.setPositionY(step.getPositionY() + 1);
+                    } else if (playerRandom.nextDouble() <= 1) {
+                        step.setPositionY(step.getPositionY() - 1);
+                    }
+                    //move is performed until there is find a direction in which the ball can be moved
+                } while (isIncorrectDirection(step));
+            }
             playerBall.setPositionX(step.getPositionX());
             playerBall.setPositionY(step.getPositionY());
-            gameField.getBalls().add(playerBall);
             print();
         }
     }

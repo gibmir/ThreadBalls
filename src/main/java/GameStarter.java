@@ -10,7 +10,7 @@ public class GameStarter  {
         Ball friedmanBall = new Ball(0, 0);
         Ball menzaBall = new Ball(1, 1);
         Ball ellefsonBall = new Ball(1, 0);
-        Set<Ball> balls = new HashSet<Ball>();
+        Set<Ball> balls = new HashSet<>();
         balls.add(mustaineBall);
         balls.add(friedmanBall);
         balls.add(menzaBall);
